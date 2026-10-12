@@ -2,7 +2,10 @@ module github.com/vitor-laguardia/snippetbox
 
 go 1.26.4
 
-require github.com/jackc/pgx/v5 v5.11.0
+require (
+	github.com/jackc/pgx/v5 v5.11.0
+	github.com/justinas/alice v1.2.0
+)
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
