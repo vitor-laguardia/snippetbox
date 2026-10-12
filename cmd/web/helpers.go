@@ -1,0 +1,61 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"runtime/debug"
+	"time"
+)
+
+func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
+	var (
+		method = r.Method
+		uri    = r.URL.RequestURI()
+		trace  = string(debug.Stack())
+	)
+
+	app.logger.Error(err.Error(),
+		slog.String("method", method),
+		slog.String("uri", uri),
+		slog.String("trace", trace),
+	)
+
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+}
+
+func (app *application) clientError(w http.ResponseWriter, status int) {
+	http.Error(w, http.StatusText(status), status)
+}
+
+func (app *application) render(w http.ResponseWriter, r *http.Request, status int, page string, data templateData) error {
+	// Retrieve the appropriate template set from the cache based on the page
+	// name (like 'home.tmpl'). If no entry exists in the cache with the
+	// provided name, then create a new error and call the serverError() helper
+	// method that we made earlier and return.
+	ts, ok := app.templateCache[page]
+	if !ok {
+		return fmt.Errorf("the template %s does not exist in the cache", page)
+	}
+
+	buf := new(bytes.Buffer)
+
+	// Write the template to the buffer, instead of straight to the
+	// http.ResponseWriter. If there's an error, return it.
+	err := ts.ExecuteTemplate(buf, "base", data)
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(status)
+
+	_, err = buf.WriteTo(w)
+	return err
+}
+
+func (app *application) newTemplateData(r *http.Request) templateData {
+	return templateData{
+		CurrentYear: time.Now().Year(),
+	}
+}
