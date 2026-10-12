@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 
@@ -19,27 +18,19 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, snippet := range snippets {
-		fmt.Fprintf(w, "%+v\n", snippet)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
 	}
-	// Initialize a slice containing the paths to the two files. It's important
-	// to note that the file containing our base template must be the *first*
-	// file in the slice.
-	//	files := []string{
-	//		"./assets/html/base.tmpl",
-	//		"./assets/html/partials/nav.tmpl",
-	//		"./assets/html/pages/home.tmpl",
-	//	}
-	//	ts, err := template.ParseFiles(files...)
-	//	if err != nil {
-	//		app.serverError(w, r, err)
-	//		return
-	//	}
-	//
-	//	err = ts.ExecuteTemplate(w, "base", nil)
-	//	if err != nil {
-	//		app.serverError(w, r, err)
-	//	}
+
+	data := templateData{
+		Snippets: snippets,
+	}
+
+	err = app.render(w, r, http.StatusOK, "home.tmpl", data)
+	if err != nil {
+		app.serverError(w, r, err)
+	}
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -61,22 +52,11 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	files := []string{
-		"./assets/html/base.tmpl",
-		"./assets/html/partials/nav.tmpl",
-		"./assets/html/pages/view.tmpl",
-	}
-
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
 	data := templateData{
 		Snippet: snippet,
 	}
-	err = ts.ExecuteTemplate(w, "base", data)
+
+	err = app.render(w, r, http.StatusOK, "view.tmpl", data)
 	if err != nil {
 		app.serverError(w, r, err)
 	}
